@@ -10,6 +10,7 @@ class NYTArticleAPIObject:
         self.api_key = api_key
 
     def check_params(self, params):
+        # TODO: move all validity checks to another file ?
         valid_params = ['q', 'fq', 'begin_date', 'end_date', 'sort', 'fl', 'hl', 'page',
                         'facet_field', 'facet_filter']
                         
@@ -17,11 +18,21 @@ class NYTArticleAPIObject:
             try:
                 valid_params.index(param)
             except ValueError:
-                print("Invalid query parameter: ", param)
+                # TODO: There Has To Be A Better Way
+                print("Invalid NYT API query parameter:", param)
                 sys.exit(1)
 
+    # Returns number of queries left for the day
+    def get_usage(self):
+        r = requests.get(self.url, headers={'api-key': self.api_key})
+        remaining = r.headers['X-RateLimit-Remaining-day']
+        # TODO: would be nice to just print this but would that be bad for compatibility?
+        return int(remaining)
+
     # Get headlines
+    # TODO: return all data as .json is probably best approach?
     def query(self, params={}, all_pages=True):
+        # TODO: change to **kwargs instead of forcing a dict?
         self.check_params(params)
         headlines = []
         max_page = 1

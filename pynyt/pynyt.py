@@ -43,7 +43,19 @@ class NYTArticleAPIObject:
             sys.exit(1)
 
     def format_fq(self, fq):
-        return fq
+        fq_str = ''
+        for key in fq:
+            val = fq[key]
+            valstr = ''
+            if isinstance(val, list):
+                for v in val:
+                    valstr += str(v) + ' '
+                valstr = valstr[:len(valstr) - 1]
+            else:
+                valstr = str(val)
+            fq_str += key + ':(' + valstr + ') AND '
+        print(fq_str[:len(fq_str) - 5])
+        return fq_str[:len(fq_str) - 5]
 
     # Returns number of queries left for the day
     def get_usage(self):
@@ -72,23 +84,28 @@ class NYTArticleAPIObject:
         if not overflow:
             self.check_hits(params)
 
-        headlines = []
+        try:
+            floor_page = int(params['page'])
+            ceil_page = floor_page + 1
+        except KeyError:
+            floor_page = 0
+            ceil_page = 100
 
-        for page_num in range(0, 100):
+        results = []
+
+        for page_num in range(floor_page, ceil_page):
             params['page'] = page_num
 
             r = requests.get(self.url, headers={'api-key': self.api_key}, params=params)
             time.sleep(1) # Article Search API has rate limit of 1 query/sec
             print(r.url)
             parsed_json = json.loads(r.text)
-            print(parsed_json)
 
             if len(parsed_json['response']['docs']) == 0: # no more results on this page - all results parsed
-                return headlines
+                return results
 
-            for article in parsed_json['response']['docs']:
-                headlines.append(article['headline']['main'])
+            results.append(r.text)
 
         warnings.warn(("Only the first 1000 articles could be scraped, as per the API's paginator limit. "
                        "Consider narrowing your search further (e.g. by date)."))
-        return headlines
+        return results

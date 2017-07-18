@@ -7,19 +7,23 @@ import warnings
 
 class NYTArticleAPIObject:
     def __init__(self, api_key):
+        """Initialize NYTArticleAPIObject with user's API key.
+        
+        Obtain a free API key at https://developer.nytimes.com/
+        """
         self.url = "http://api.nytimes.com/svc/search/v2/articlesearch.json"
         self.api_key = api_key
 
     def check_params(self, params):
-        # TODO: move all validity checks to another file ?
+        # Checks whether parameter names and values are valid 
         valid_params = ['q', 'fq', 'begin_date', 'end_date', 'sort', 'fl', 'hl', 'page',
                         'facet_field', 'facet_filter']
-                        
+        
+        # Check parameter names
         for param in params:
             try:
                 valid_params.index(param)
             except ValueError:
-                # TODO: There Has To Be A Better Way
                 print("Invalid NYT API query parameter:", param)
                 sys.exit(1)
 
@@ -27,12 +31,16 @@ class NYTArticleAPIObject:
         time.sleep(1)
         parsed_json = json.loads(r.text)
 
+        # Check parameter values
+        # Incorrect filter query fields do NOT throw errors
         if 'errors' in parsed_json:
             for error in parsed_json['errors']:
                 print(error)
             sys.exit(1)
     
     def check_hits(self, params):
+        # Ensures number of search results is no more than 1000
+        # Halts program to avoid wasting daily alloted API calls
         r = requests.get(self.url, headers={'api-key': self.api_key}, params=params)
         time.sleep(1)
         parsed_json = json.loads(r.text)
@@ -43,11 +51,12 @@ class NYTArticleAPIObject:
             sys.exit(1)
 
     def format_fq(self, fq):
+        # Formats filter query field into a string for requests.get()
         fq_str = ''
         for key in fq:
             val = fq[key]
             valstr = ''
-            if isinstance(val, list):
+            if isinstance(val, list): # Multiple values for fq field
                 for v in val:
                     valstr += str(v) + ' '
                 valstr = valstr[:len(valstr) - 1]
@@ -57,15 +66,8 @@ class NYTArticleAPIObject:
         print(fq_str[:len(fq_str) - 5])
         return fq_str[:len(fq_str) - 5]
 
-    # Returns number of queries left for the day
-    def get_usage(self):
-        r = requests.get(self.url, headers={'api-key': self.api_key})
-        time.sleep(1)
-        remaining = r.headers['X-RateLimit-Remaining-day']
-        # TODO: would be nice to just print this but would that be bad for compatibility?
-        return int(remaining)
-
     def prep_params(self, **kwargs):
+        # Converts kwargs into dictionary of parameters for requests.get()
         params = {}
         for key, value in kwargs.items():
             params[key] = value
@@ -77,19 +79,44 @@ class NYTArticleAPIObject:
 
         return params
 
-    # Get headlines
-    # TODO: return all data as .json is probably best approach?
-    def query(self, overflow=False, **kwargs):
-        params = self.prep_params(**kwargs)
-        if not overflow:
-            self.check_hits(params)
+    def get_usage(self):
+        """ Gets number of remaining queries permitted for object's API key.
 
-        try:
+        Article Search API queries are limited to 1000 per day, so depending
+        on the application it may be useful to check how many API calls are
+        left for the day. Every call of requests.get() consumes a query (e.g.
+        one per page in query(), one for this function, etc.)
+        """
+        r = requests.get(self.url, headers={'api-key': self.api_key})
+        time.sleep(1)
+        remaining = r.headers['X-RateLimit-Remaining-day']
+        return int(remaining)
+
+    def query(self, halt_overflow=True, **kwargs):
+        """ Queries the NYT Article Search API, returns a list of JSON results.
+
+        The list contains one JSON result for each page of the query results.
+        Each page contains information for up to 10 articles. The API's paginator
+        is limited to 100 pages; in other words, results are limited to the
+        first 1000 articles found by the query. If no page is specified, the
+        program will return each page of results via the list.
+
+        Keyword arguments:
+        halt_overflow -- if true, checks whether more than 1000 articles are found
+                         and if so, terminates program to avoid returning partial
+                         results. (default True)
+        kwargs -- arguments for search query
+        """
+        params = self.prep_params(**kwargs)
+
+        try: # if page number for the query is given
             floor_page = int(params['page'])
             ceil_page = floor_page + 1
-        except KeyError:
+        except KeyError: # if page number is not given by user
             floor_page = 0
             ceil_page = 100
+            if halt_overflow:
+                self.check_hits(params)
 
         results = []
 
@@ -101,7 +128,7 @@ class NYTArticleAPIObject:
             print(r.url)
             parsed_json = json.loads(r.text)
 
-            if len(parsed_json['response']['docs']) == 0: # no more results on this page - all results parsed
+            if len(parsed_json['response']['docs']) == 0: # no more results on this page -> all results parsed
                 return results
 
             results.append(r.text)

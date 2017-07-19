@@ -93,9 +93,10 @@ class NYTArticleAPIObject:
         return int(remaining)
 
     def query(self, halt_overflow=True, **kwargs):
-        """ Queries the NYT Article Search API, returns a list of JSON results.
+        """ Queries the NYT Article Search API, returns a list of dictionaries.
 
-        The list contains one JSON result for each page of the query results.
+        The list contains one dict result for each page of the query results. The
+        structure of the dictionaries match that of the API's JSON output.
         Each page contains information for up to 10 articles. The API's paginator
         is limited to 100 pages; in other words, results are limited to the
         first 1000 articles found by the query. If no page is specified, the
@@ -131,7 +132,7 @@ class NYTArticleAPIObject:
             if len(parsed_json['response']['docs']) == 0: # no more results on this page -> all results parsed
                 return results
 
-            results.append(r.text)
+            results.append(parsed_json)
 
         warnings.warn(("Only the first 1000 articles could be scraped, as per the API's paginator limit. "
                        "Consider narrowing your search further (e.g. by date)."))

@@ -38,9 +38,9 @@ class NYTArticleAPIObject:
                 print(error)
             sys.exit(1)
     
-    def check_hits(self, params):
+    def check_hits(self, params, halt_overflow):
         # Ensures number of search results is no more than 1000
-        # Halts program to avoid wasting daily alloted API calls
+        # If halt_overflow == True, halts program to avoid wasting daily alloted API calls
         r = requests.get(self.url, headers={'api-key': self.api_key}, params=params)
         time.sleep(1)
         parsed_json = json.loads(r.text)
@@ -48,7 +48,24 @@ class NYTArticleAPIObject:
         hits = int(parsed_json['response']['meta']['hits'])
         if hits > 1000:
             print('%d articles were found' % hits)
-            sys.exit(1)
+            if halt_overflow:
+                print(("API only permits retrieval of first 1000 search results - halting "
+                       "now to avoid wasting API calls. To override, call query() with "
+                       "halt_overflow = False."))
+                sys.exit(1)
+            else:
+                warnings.warn(("Only the first 1000 articles will be scraped, as per the API's paginator limit. "
+                "Consider narrowing your search further (e.g. by date)."))
+
+    def format_facet_field(self, ff):
+        # Formats facet field(s) into a string for requests.get()
+        ff_str = ''
+        if isinstance(ff, list):
+            for field in ff:
+                ff_str += str(field) + ","
+            return ff_str[:len(ff_str) - 1] # get rid of trailing comma
+        else:
+            return str(ff)
 
     def format_fq(self, fq):
         # Formats filter query field into a string for requests.get()
@@ -63,7 +80,6 @@ class NYTArticleAPIObject:
             else:
                 valstr = str(val)
             fq_str += key + ':(' + valstr + ') AND '
-        print(fq_str[:len(fq_str) - 5])
         return fq_str[:len(fq_str) - 5]
 
     def prep_params(self, **kwargs):
@@ -76,6 +92,9 @@ class NYTArticleAPIObject:
 
         if 'fq' in params:
             params['fq'] = self.format_fq(params['fq'])
+
+        if 'facet_field' in params:
+            params['facet_field'] = self.format_facet_field(params['facet_field'])
 
         return params
 
@@ -116,8 +135,7 @@ class NYTArticleAPIObject:
         except KeyError: # if page number is not given by user
             floor_page = 0
             ceil_page = 100
-            if halt_overflow:
-                self.check_hits(params)
+            self.check_hits(params, halt_overflow)
 
         results = []
 
@@ -134,6 +152,5 @@ class NYTArticleAPIObject:
 
             results.append(parsed_json)
 
-        warnings.warn(("Only the first 1000 articles could be scraped, as per the API's paginator limit. "
-                       "Consider narrowing your search further (e.g. by date)."))
+
         return results

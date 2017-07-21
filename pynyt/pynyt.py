@@ -57,15 +57,15 @@ class NYTArticleAPIObject:
                 warnings.warn(("Only the first 1000 articles will be scraped, as per the API's paginator limit. "
                 "Consider narrowing your search further (e.g. by date)."))
 
-    def format_facet_field(self, ff):
-        # Formats facet field(s) into a string for requests.get()
-        ff_str = ''
-        if isinstance(ff, list):
-            for field in ff:
-                ff_str += str(field) + ","
-            return ff_str[:len(ff_str) - 1] # get rid of trailing comma
+    def format_possible_list(self, poss_list):
+        # Formats fl or facet_field into a string for requests.get()
+        l_str = ''
+        if isinstance(poss_list, list):
+            for field in poss_list:
+                l_str += str(field) + ","
+            return l_str[:len(l_str) - 1] # get rid of trailing comma
         else:
-            return str(ff)
+            return poss_list
 
     def format_fq(self, fq):
         # Formats filter query field into a string for requests.get()
@@ -93,8 +93,11 @@ class NYTArticleAPIObject:
         if 'fq' in params:
             params['fq'] = self.format_fq(params['fq'])
 
+        if 'fl' in params:
+            params['fl'] = self.format_possible_list(params['fl'])
+
         if 'facet_field' in params:
-            params['facet_field'] = self.format_facet_field(params['facet_field'])
+            params['facet_field'] = self.format_possible_list(params['facet_field'])
 
         return params
 

@@ -59,8 +59,8 @@ class NYTArticleAPIObject:
 
     def format_possible_list(self, poss_list):
         # Formats fl or facet_field into a string for requests.get()
-        l_str = ''
         if isinstance(poss_list, list):
+            l_str = ''
             for field in poss_list:
                 l_str += str(field) + ","
             return l_str[:len(l_str) - 1] # get rid of trailing comma
@@ -154,6 +154,5 @@ class NYTArticleAPIObject:
                 return results
 
             results.append(parsed_json)
-
 
         return results

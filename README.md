@@ -3,7 +3,7 @@ pynyt is a wrapper for the [New York Times Article Search API](https://developer
 which enables retrieval of Times article metadata via a variety of query fields. This wrapper makes use of the
 [requests](http://docs.python-requests.org/en/master/) library. pynyt is written in Python 3.
 
-# Installation
+## Installation
 
 ```python
 import sys
@@ -15,7 +15,7 @@ from pynyt import NYTArticleAPIObject
 Accessing the Article Search API requires an API key, which can be obtained for free
 [here](https://developer.nytimes.com/signup).
 
-# Usage
+## Usage
 
 Results are returned as a list of dictionaries, each list representing a page of results (10 articles per page).
 The API's paginator limits results to 100 pages (or 1000 articles)—set `halt_overflow=False` to return the first

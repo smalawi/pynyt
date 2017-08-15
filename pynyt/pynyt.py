@@ -114,7 +114,7 @@ class NYTArticleAPIObject:
         remaining = r.headers['X-RateLimit-Remaining-day']
         return int(remaining)
 
-    def query(self, halt_overflow=True, **kwargs):
+    def query(self, halt_overflow=True, verbose=False, **kwargs):
         """ Queries the NYT Article Search API, returns a list of dictionaries.
 
         The list contains one dict result for each page of the query results. The
@@ -128,6 +128,8 @@ class NYTArticleAPIObject:
         halt_overflow -- if true, checks whether more than 1000 articles are found
                          and if so, terminates program to avoid returning partial
                          results. (default True)
+        verbose -- if true, prints page number indicators to console. Useful for
+                   large queries (e.g. pulling 100 pages with halt_overflow=False).
         kwargs -- arguments for search query
         """
         params = self.prep_params(**kwargs)
@@ -144,6 +146,8 @@ class NYTArticleAPIObject:
 
         for page_num in range(floor_page, ceil_page):
             params['page'] = page_num
+            if verbose:
+                print('Processing page', page_num)
 
             r = requests.get(self.url, headers={'api-key': self.api_key}, params=params)
             time.sleep(1) # Article Search API has rate limit of 1 query/sec

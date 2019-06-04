@@ -3,6 +3,8 @@ pynyt is a wrapper for the [New York Times Article Search API](https://developer
 which enables retrieval of Times article metadata via a variety of query fields. This wrapper makes use of the
 [requests](http://docs.python-requests.org/en/master/) library. pynyt is written in Python 3.
 
+**6/3/2019: pynyt has not been updated since 2017 and is probably incompatible with the current version of the Article Search API.**
+
 ## Installation
 
 ```python
